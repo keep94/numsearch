@@ -4,7 +4,7 @@ go 1.24.1
 
 require (
 	github.com/keep94/itertools v0.6.0
-	github.com/keep94/sqrt v0.1.0
+	github.com/keep94/sqrt v0.1.1
 	github.com/stretchr/testify v1.11.1
 )
 

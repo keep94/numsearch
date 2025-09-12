@@ -23,7 +23,7 @@ func main() {
 
     // Find the 0-based position of the first occurrence of "07" within
     // Sqrt(3). This prints 8.
-    fmt.Println(numsearch.FindFirst(sqrt.Sqrt(3), numsearch.String("07")))
+    fmt.Println(numsearch.First(sqrt.Sqrt(3), numsearch.String("07")))
 }
 ```
 
