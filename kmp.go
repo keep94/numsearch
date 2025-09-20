@@ -31,8 +31,9 @@ func zeroPattern(s iter.Seq2[int, int]) iter.Seq[int] {
 }
 
 func kmp(s iter.Seq2[int, int], pattern []int, reverse bool) iter.Seq[int] {
+	initialKernel := newKmpKernel(pattern)
 	return func(yield func(int) bool) {
-		kernel := newKmpKernel(pattern)
+		kernel := initialKernel
 		for posit, digit := range s {
 			if kernel.Visit(digit) {
 				if reverse {
@@ -53,8 +54,8 @@ type kmpKernel struct {
 	patternIndex int
 }
 
-func newKmpKernel(pattern []int) *kmpKernel {
-	return &kmpKernel{
+func newKmpKernel(pattern []int) kmpKernel {
+	return kmpKernel{
 		table:   ttable(pattern),
 		pattern: pattern,
 	}

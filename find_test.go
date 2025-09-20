@@ -17,6 +17,13 @@ func TestAll(t *testing.T) {
 	assert.Equal(t, []int{2, 12, 22, 32}, slices.Collect(iterator))
 }
 
+func TestAllOverlap(t *testing.T) {
+	n := newRepeating("35")
+	iterator := All(n, String("3535"))
+	assert.Equal(t, []int{0, 2, 4}, take(iterator, 3))
+	assert.Equal(t, []int{0, 2, 4}, take(iterator, 3))
+}
+
 func TestAllEmptyPattern(t *testing.T) {
 	n := newRepeating("1234567890")
 	iterator := All(n, Pattern{})
