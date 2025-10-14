@@ -17,6 +17,13 @@ func TestAll(t *testing.T) {
 	assert.Equal(t, []int{2, 12, 22, 32}, slices.Collect(iterator))
 }
 
+func TestBackwardOverlap(t *testing.T) {
+	n := newFixed("35353535")
+	iterator := Backward(n, String("3535"))
+	assert.Equal(t, []int{4, 2, 0}, slices.Collect(iterator))
+	assert.Equal(t, []int{4, 2, 0}, slices.Collect(iterator))
+}
+
 func TestAllOverlap(t *testing.T) {
 	n := newRepeating("35")
 	iterator := All(n, String("3535"))

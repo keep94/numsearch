@@ -13,8 +13,8 @@ import (
 	"iter"
 )
 
-// Searchable represents a sequence of digits between 0-9 that can be
-// searched.
+// Searchable represents a sequence of digits between 0-9 with contiguous
+// positions that can be searched.
 type Searchable interface {
 
 	// All returns the 0 based position and value of each digit in this
@@ -22,8 +22,8 @@ type Searchable interface {
 	All() iter.Seq2[int, int]
 }
 
-// RSearchable represents a sequence of digits between 0-9 that can be
-// searched in reverse order.
+// RSearchable represents a sequence of digits between 0-9 with contiguous
+// positions that can be searched in reverse order.
 type RSearchable interface {
 
 	// Backward returns the 0 based position and value of each digit in this
