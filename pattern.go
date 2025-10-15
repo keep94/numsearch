@@ -51,8 +51,8 @@ func SafeInts(digits ...int) (Pattern, error) {
 	if len(digits) == 0 {
 		return Pattern{}, nil
 	}
-	if err := digitsValid(digits); err != nil {
-		return Pattern{}, err
+	if !digitsValid(digits) {
+		return Pattern{}, fmt.Errorf("%v pattern is invalid", digits)
 	}
 	return Pattern{spec: slices.Clone(digits)}, nil
 }
@@ -96,11 +96,11 @@ func safeIntSliceFromString(s string) ([]int, bool) {
 	return result, true
 }
 
-func digitsValid(digits []int) error {
+func digitsValid(digits []int) bool {
 	for _, d := range digits {
 		if d < 0 || d > 9 {
-			return fmt.Errorf("%v pattern is invalid", digits)
+			return false
 		}
 	}
-	return nil
+	return true
 }
