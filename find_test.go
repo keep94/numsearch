@@ -31,11 +31,25 @@ func TestAllOverlap(t *testing.T) {
 	assert.Equal(t, []int{0, 2, 4}, take(iterator, 3))
 }
 
+func TestAllOverlapWithStart(t *testing.T) {
+	n := newRepeating("35").WithStart(99)
+	iterator := All(n, String("3535"))
+	assert.Equal(t, []int{100, 102, 104}, take(iterator, 3))
+	assert.Equal(t, []int{100, 102, 104}, take(iterator, 3))
+}
+
 func TestAllEmptyPattern(t *testing.T) {
 	n := newRepeating("1234567890")
 	iterator := All(n, Pattern{})
 	assert.Equal(t, []int{0, 1, 2, 3}, take(iterator, 4))
 	assert.Equal(t, []int{0, 1, 2, 3}, take(iterator, 4))
+}
+
+func TestAllEmptyPatternWithStart(t *testing.T) {
+	n := newRepeating("1234567890").WithStart(100)
+	iterator := All(n, Pattern{})
+	assert.Equal(t, []int{100, 101, 102, 103}, take(iterator, 4))
+	assert.Equal(t, []int{100, 101, 102, 103}, take(iterator, 4))
 }
 
 func TestBackward(t *testing.T) {
@@ -110,23 +124,30 @@ func take(s iter.Seq[int], n int) []int {
 
 type repeating struct {
 	Digits []int
+	Start  int
 }
 
 func newRepeating(digits string) *repeating {
 	return &repeating{Digits: intSliceFromString(digits)}
 }
 
-func (r *repeating) All() iter.Seq2[int, int] {
-	return r.Scan
+func (r *repeating) WithStart(start int) *repeating {
+	result := *r
+	if start > r.Start {
+		result.Start = start
+	}
+	return &result
 }
 
-func (r *repeating) Scan(yield func(int, int) bool) {
-	posit := 0
-	for {
-		if !yield(posit, r.Digits[posit%len(r.Digits)]) {
-			return
+func (r *repeating) All() iter.Seq2[int, int] {
+	return func(yield func(int, int) bool) {
+		posit := r.Start
+		for {
+			if !yield(posit, r.Digits[posit%len(r.Digits)]) {
+				return
+			}
+			posit++
 		}
-		posit++
 	}
 }
 
@@ -139,25 +160,21 @@ func newFixed(digits string) *fixed {
 }
 
 func (f *fixed) All() iter.Seq2[int, int] {
-	return f.Scan
-}
-
-func (f *fixed) Backward() iter.Seq2[int, int] {
-	return f.RScan
-}
-
-func (f *fixed) Scan(yield func(int, int) bool) {
-	for posit := range f.Digits {
-		if !yield(posit, f.Digits[posit]) {
-			return
+	return func(yield func(int, int) bool) {
+		for posit := range f.Digits {
+			if !yield(posit, f.Digits[posit]) {
+				return
+			}
 		}
 	}
 }
 
-func (f *fixed) RScan(yield func(int, int) bool) {
-	for i := len(f.Digits) - 1; i >= 0; i-- {
-		if !yield(i, f.Digits[i]) {
-			return
+func (f *fixed) Backward() iter.Seq2[int, int] {
+	return func(yield func(int, int) bool) {
+		for i := len(f.Digits) - 1; i >= 0; i-- {
+			if !yield(i, f.Digits[i]) {
+				return
+			}
 		}
 	}
 }
