@@ -3,8 +3,8 @@ module github.com/keep94/numsearch
 go 1.24.1
 
 require (
-	github.com/keep94/itertools v0.7.2
-	github.com/keep94/sqrt v0.1.2
+	github.com/keep94/itertools v0.8.0
+	github.com/keep94/sqrt v0.1.3
 	github.com/stretchr/testify v1.11.1
 )
 
