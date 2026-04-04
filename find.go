@@ -10,6 +10,7 @@
 package numsearch
 
 import (
+	"context"
 	"iter"
 )
 
@@ -54,6 +55,19 @@ func Backward(s RSearchable, pattern Pattern) iter.Seq[int] {
 // First will run forever.
 func First(s Searchable, pattern Pattern) int {
 	return collectFirst(All(s, pattern))
+}
+
+// FirstWithContext works like First except that it returns early with an
+// error when the context is canceled.
+func FirstWithContext(
+	ctx context.Context, s Searchable, pattern Pattern) (int, error) {
+	if pattern.IsZero() {
+		for result := range s.All() {
+			return result, nil
+		}
+		return -1, nil
+	}
+	return kmpFirst(ctx, s.All(), pattern.Forward())
 }
 
 // Last finds the zero based index of the last match of pattern in s.

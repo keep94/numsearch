@@ -1,8 +1,10 @@
 package numsearch
 
 import (
+	"context"
 	"iter"
 	"slices"
+	"sync"
 	"testing"
 
 	"github.com/keep94/itertools"
@@ -70,16 +72,33 @@ func TestBackwardEmptyPattern(t *testing.T) {
 func TestFirst(t *testing.T) {
 	s := newRepeating("1234567890")
 	assert.Equal(t, 5, First(s, Ints(6, 7, 8)))
+	posit, err := FirstWithContext(context.Background(), s, String("678"))
+	assert.NoError(t, err)
+	assert.Equal(t, 5, posit)
 }
 
 func TestFirstNotThere(t *testing.T) {
 	s := newFixed("317")
 	assert.Equal(t, -1, First(s, Ints(5)))
+	posit, err := FirstWithContext(context.Background(), s, Ints(5))
+	assert.NoError(t, err)
+	assert.Equal(t, -1, posit)
 }
 
 func TestFindEmptyPattern(t *testing.T) {
-	s := newRepeating("1234567890")
-	assert.Equal(t, 0, First(s, Pattern{}))
+	s := newRepeating("1234567890").WithStart(47)
+	assert.Equal(t, 47, First(s, Pattern{}))
+	posit, err := FirstWithContext(context.Background(), s, Pattern{})
+	assert.NoError(t, err)
+	assert.Equal(t, 47, posit)
+}
+
+func TestFindEmptyPatternOnEmpty(t *testing.T) {
+	s := newFixed("")
+	assert.Equal(t, -1, First(s, Pattern{}))
+	posit, err := FirstWithContext(context.Background(), s, Pattern{})
+	assert.NoError(t, err)
+	assert.Equal(t, -1, posit)
 }
 
 func TestFirstNTrickyPattern(t *testing.T) {
@@ -116,6 +135,21 @@ func TestFindOverlap(t *testing.T) {
 	nn := newFixed("43000023")
 	matches = Backward(nn, String("000"))
 	assert.Equal(t, []int{3, 2}, take(matches, 3))
+}
+
+func TestFirstWithContextCancel(t *testing.T) {
+	var wg sync.WaitGroup
+	n := newRepeating("43000023")
+	ctx, cancel := context.WithCancel(context.Background())
+	wg.Add(1)
+	go func(ctx context.Context) {
+		index, err := FirstWithContext(ctx, n, String("12345"))
+		assert.Equal(t, 0, index)
+		assert.Equal(t, context.Canceled, err)
+		wg.Done()
+	}(ctx)
+	cancel()
+	wg.Wait()
 }
 
 func take(s iter.Seq[int], n int) []int {

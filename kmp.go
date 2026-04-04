@@ -1,8 +1,11 @@
 package numsearch
 
 import (
+	"context"
 	"iter"
 )
+
+const contextBatchSize = 100
 
 // pattern must be non-empty
 func ttable(pattern []int) []int {
@@ -46,6 +49,22 @@ func kmp(s iter.Seq2[int, int], pattern []int, reverse bool) iter.Seq[int] {
 			}
 		}
 	}
+}
+
+func kmpFirst(
+	ctx context.Context,
+	s iter.Seq2[int, int],
+	pattern []int) (int, error) {
+	kernel := makeKmpKernel(pattern)
+	for posit, digit := range s {
+		if posit%contextBatchSize == 0 && ctx.Err() != nil {
+			return 0, ctx.Err()
+		}
+		if kernel.Visit(digit) {
+			return posit + 1 - len(pattern), nil
+		}
+	}
+	return -1, nil
 }
 
 type kmpKernel struct {
