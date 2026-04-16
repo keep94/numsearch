@@ -34,6 +34,16 @@ func TestString(t *testing.T) {
 	assert.Equal(t, []int{0, 9}, pattern.Backward())
 }
 
+func TestPatternToString(t *testing.T) {
+	pattern := String("01234")
+	assert.Equal(t, "01234", pattern.String())
+}
+
+func TestZeroPatternToString(t *testing.T) {
+	var zero Pattern
+	assert.Equal(t, "", zero.String())
+}
+
 func TestIntsPanics(t *testing.T) {
 	assert.Panics(t, func() { Ints(-1) })
 	assert.Panics(t, func() { Ints(10) })

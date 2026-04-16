@@ -3,6 +3,7 @@ package numsearch
 import (
 	"fmt"
 	"slices"
+	"strings"
 )
 
 // Pattern is a search pattern of digits between 0 and 9 inclusive.
@@ -75,6 +76,15 @@ func (p Pattern) Backward() []int {
 		result[length-i-1] = p.spec[i]
 	}
 	return result
+}
+
+func (p Pattern) String() string {
+	var result strings.Builder
+	result.Grow(len(p.spec))
+	for _, digit := range p.spec {
+		result.WriteByte('0' + byte(digit))
+	}
+	return result.String()
 }
 
 func intSliceFromString(s string) []int {
