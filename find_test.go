@@ -2,6 +2,7 @@ package numsearch
 
 import (
 	"context"
+	"errors"
 	"iter"
 	"slices"
 	"sync"
@@ -17,6 +18,31 @@ func TestAll(t *testing.T) {
 	iterator := All(s, pattern)
 	assert.Equal(t, []int{2, 12, 22, 32}, slices.Collect(iterator))
 	assert.Equal(t, []int{2, 12, 22, 32}, slices.Collect(iterator))
+	posits, err := FirstNWithContext(context.Background(), s, pattern, 0)
+	assert.NoError(t, err)
+	assert.Equal(t, []int{2, 12, 22, 32}, posits)
+}
+
+func TestFirstNWithContextPrimer(t *testing.T) {
+	s := &searchablePrimer{
+		newFixed("1234567890123456789012345678901234567890"),
+		&primerImpl{},
+	}
+	pattern := Ints(3, 4)
+	posits, err := FirstNWithContext(context.Background(), s, pattern, 0)
+	assert.NoError(t, err)
+	assert.Equal(t, []int{2, 12, 22, 32}, posits)
+}
+
+func TestFirstNWithContextPrimerError(t *testing.T) {
+	s := &searchablePrimer{
+		newFixed("1234567890123456789012345678901234567890"),
+		&primerImpl{Result: errors.New("An error")},
+	}
+	pattern := Ints(3, 4)
+	posits, err := FirstNWithContext(context.Background(), s, pattern, 0)
+	assert.Error(t, err)
+	assert.Nil(t, posits)
 }
 
 func TestBackwardOverlap(t *testing.T) {
@@ -35,9 +61,13 @@ func TestAllOverlap(t *testing.T) {
 
 func TestAllOverlapWithStart(t *testing.T) {
 	n := newRepeating("35").WithStart(99)
-	iterator := All(n, String("3535"))
+	pattern := String("3535")
+	iterator := All(n, pattern)
 	assert.Equal(t, []int{100, 102, 104}, take(iterator, 3))
 	assert.Equal(t, []int{100, 102, 104}, take(iterator, 3))
+	posits, err := FirstNWithContext(context.Background(), n, pattern, 3)
+	assert.NoError(t, err)
+	assert.Equal(t, []int{100, 102, 104}, posits)
 }
 
 func TestAllEmptyPattern(t *testing.T) {
@@ -45,6 +75,9 @@ func TestAllEmptyPattern(t *testing.T) {
 	iterator := All(n, Pattern{})
 	assert.Equal(t, []int{0, 1, 2, 3}, take(iterator, 4))
 	assert.Equal(t, []int{0, 1, 2, 3}, take(iterator, 4))
+	posits, err := FirstNWithContext(context.Background(), n, Pattern{}, 4)
+	assert.NoError(t, err)
+	assert.Equal(t, []int{0, 1, 2, 3}, posits)
 }
 
 func TestAllEmptyPatternWithStart(t *testing.T) {
@@ -75,6 +108,26 @@ func TestFirst(t *testing.T) {
 	posit, err := FirstWithContext(context.Background(), s, String("678"))
 	assert.NoError(t, err)
 	assert.Equal(t, 5, posit)
+}
+
+func TestFirstWithContextPrimer(t *testing.T) {
+	s := &searchablePrimer{
+		newRepeating("1234567890"),
+		&primerImpl{},
+	}
+	posit, err := FirstWithContext(context.Background(), s, String("678"))
+	assert.NoError(t, err)
+	assert.Equal(t, 5, posit)
+}
+
+func TestFirstWithContextPrimerError(t *testing.T) {
+	s := &searchablePrimer{
+		newRepeating("1234567890"),
+		&primerImpl{Result: errors.New("An error")},
+	}
+	posit, err := FirstWithContext(context.Background(), s, String("678"))
+	assert.Error(t, err)
+	assert.Equal(t, 0, posit)
 }
 
 func TestFirstNotThere(t *testing.T) {
@@ -152,6 +205,21 @@ func TestFirstWithContextCancel(t *testing.T) {
 	wg.Wait()
 }
 
+func TestFirstNWithContextCancel(t *testing.T) {
+	var wg sync.WaitGroup
+	n := newRepeating("43000023")
+	ctx, cancel := context.WithCancel(context.Background())
+	wg.Add(1)
+	go func(ctx context.Context) {
+		indexes, err := FirstNWithContext(ctx, n, Pattern{}, 0)
+		assert.Nil(t, indexes)
+		assert.Equal(t, context.Canceled, err)
+		wg.Done()
+	}(ctx)
+	cancel()
+	wg.Wait()
+}
+
 func take(s iter.Seq[int], n int) []int {
 	return slices.Collect(itertools.Take(n, s))
 }
@@ -211,4 +279,17 @@ func (f *fixed) Backward() iter.Seq2[int, int] {
 			}
 		}
 	}
+}
+
+type primerImpl struct {
+	Result error
+}
+
+func (p *primerImpl) PrimeToStart(ctx context.Context) error {
+	return p.Result
+}
+
+type searchablePrimer struct {
+	Searchable
+	Primer
 }
