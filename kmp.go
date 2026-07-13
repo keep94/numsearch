@@ -51,11 +51,11 @@ func kmp(s iter.Seq2[int, int], pattern []int, reverse bool) iter.Seq[int] {
 	}
 }
 
-func kmpFirstN(
+func kmpAllWithContext(
 	ctx context.Context,
 	s iter.Seq2[int, int],
 	pattern []int,
-	n int) ([]int, error) {
+	positionConsumer func(position int) bool) error {
 	var kernelPtr *kmpKernel
 	patternLen := len(pattern)
 	if len(pattern) == 0 {
@@ -64,19 +64,17 @@ func kmpFirstN(
 		kernel := makeKmpKernel(pattern)
 		kernelPtr = &kernel
 	}
-	var result []int
 	for posit, digit := range s {
 		if posit%contextBatchSize == 0 && ctx.Err() != nil {
-			return nil, ctx.Err()
+			return ctx.Err()
 		}
 		if kernelPtr.Visit(digit) {
-			result = append(result, posit+1-patternLen)
-			if len(result) == n {
-				return result, nil
+			if !positionConsumer(posit + 1 - patternLen) {
+				return nil
 			}
 		}
 	}
-	return result, nil
+	return nil
 }
 
 type kmpKernel struct {

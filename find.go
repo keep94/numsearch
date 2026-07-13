@@ -58,7 +58,7 @@ func Backward(s RSearchable, pattern Pattern) iter.Seq[int] {
 	return kmp(s.Backward(), pattern.Backward(), true)
 }
 
-// First finds the zero based index of the first match of pattern in s.
+// First finds the zero based position of the first match of pattern in s.
 // First returns -1 if pattern is not found only if s has a finite number
 // of digits. If s has an infinite number of digits and pattern is not found,
 // First will run forever.
@@ -66,22 +66,43 @@ func First(s Searchable, pattern Pattern) int {
 	return collectFirst(All(s, pattern))
 }
 
+// AllWithContext searches for all occurrences of pattern in s. Each time
+// it finds pattern, it passes the 0 based position of the find in s to
+// positionConsumer. It continues doing this until positionConsumer returns
+// false or it reaches the end of s. If the context is canceled,
+// AllWithContext returns early with an error. If s implements Primer,
+// AllWithContext calls PrimeToStart on s before searching.
+func AllWithContext(
+	ctx context.Context,
+	s Searchable,
+	pattern Pattern,
+	positionConsumer func(position int) bool) error {
+	if primer, ok := s.(Primer); ok {
+		if err := primer.PrimeToStart(ctx); err != nil {
+			return err
+		}
+	}
+	return kmpAllWithContext(
+		ctx, s.All(), pattern.Forward(), positionConsumer)
+}
+
 // FirstWithContext works like First except that it returns early with an
 // error when the context is canceled. If s implements Primer,
 // FirstWithContext calls PrimeToStart on s before searching.
 func FirstWithContext(
 	ctx context.Context, s Searchable, pattern Pattern) (int, error) {
-	result, err := FirstNWithContext(ctx, s, pattern, 1)
-	if err != nil {
+	result := -1
+	consumer := func(position int) bool {
+		result = position
+		return false
+	}
+	if err := AllWithContext(ctx, s, pattern, consumer); err != nil {
 		return 0, err
 	}
-	if len(result) == 0 {
-		return -1, nil
-	}
-	return result[0], nil
+	return result, nil
 }
 
-// FirstNWithContext returns the zero based indexes of the first n matches
+// FirstNWithContext returns the zero based positions of the first n matches
 // of pattern in s. If n is 0 or negative, FirstNWithContext returns all
 // matches of pattern in s. FirstNWithContext returns early with an error
 // when the context is canceled. If s implements Primer, FirstNWithContext
@@ -91,23 +112,26 @@ func FirstNWithContext(
 	s Searchable,
 	pattern Pattern,
 	n int) ([]int, error) {
-	if primer, ok := s.(Primer); ok {
-		if err := primer.PrimeToStart(ctx); err != nil {
-			return nil, err
-		}
+	var result []int
+	consumer := func(position int) bool {
+		result = append(result, position)
+		return len(result) != n
 	}
-	return kmpFirstN(ctx, s.All(), pattern.Forward(), n)
+	if err := AllWithContext(ctx, s, pattern, consumer); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-// Last finds the zero based index of the last match of pattern in s.
+// Last finds the zero based position of the last match of pattern in s.
 // Last returns -1 if pattern is not found in s.
 func Last(s RSearchable, pattern Pattern) int {
 	return collectFirst(Backward(s, pattern))
 }
 
 func collectFirst(seq iter.Seq[int]) int {
-	for index := range seq {
-		return index
+	for position := range seq {
+		return position
 	}
 	return -1
 }
