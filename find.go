@@ -41,6 +41,10 @@ type Primer interface {
 	PrimeToStart(ctx context.Context) error
 }
 
+// ConsumerFunc consumes int values one at a time and returns false when
+// it is done consuming.
+type ConsumerFunc func(value int) bool
+
 // All returns all the 0 based positions in s where pattern is found.
 func All(s Searchable, pattern Pattern) iter.Seq[int] {
 	if pattern.IsZero() {
@@ -68,22 +72,22 @@ func First(s Searchable, pattern Pattern) int {
 
 // AllWithContext searches for all occurrences of pattern in s. Each time
 // it finds pattern, it passes the 0 based position of the find in s to
-// positionConsumer. It continues doing this until positionConsumer returns
-// false or it reaches the end of s. If the context is canceled,
-// AllWithContext returns early with an error. If s implements Primer,
-// AllWithContext calls PrimeToStart on s before searching.
+// consumer. It continues doing this until consumer returns false or it
+// reaches the end of s. If the context is canceled, AllWithContext returns
+// early with an error. If s implements Primer, AllWithContext calls
+// PrimeToStart on s before searching.
 func AllWithContext(
 	ctx context.Context,
 	s Searchable,
 	pattern Pattern,
-	positionConsumer func(position int) bool) error {
+	consumer ConsumerFunc) error {
 	if primer, ok := s.(Primer); ok {
 		if err := primer.PrimeToStart(ctx); err != nil {
 			return err
 		}
 	}
 	return kmpAllWithContext(
-		ctx, s.All(), pattern.Forward(), positionConsumer)
+		ctx, s.All(), pattern.Forward(), consumer)
 }
 
 // FirstWithContext works like First except that it returns early with an

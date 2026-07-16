@@ -55,7 +55,7 @@ func kmpAllWithContext(
 	ctx context.Context,
 	s iter.Seq2[int, int],
 	pattern []int,
-	positionConsumer func(position int) bool) error {
+	consumer func(position int) bool) error {
 	var kernelPtr *kmpKernel
 	patternLen := len(pattern)
 	if len(pattern) == 0 {
@@ -69,7 +69,7 @@ func kmpAllWithContext(
 			return ctx.Err()
 		}
 		if kernelPtr.Visit(digit) {
-			if !positionConsumer(posit + 1 - patternLen) {
+			if !consumer(posit + 1 - patternLen) {
 				return nil
 			}
 		}
